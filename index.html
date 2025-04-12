@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ЕҢ ҮЛГИЛИ МЕКТЕП </title>
+    <link rel="stylesheet" href="app/style.css">  <!-- Подключаем стиль -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+
+    <h1>ЕҢ ҮЛГИЛИ МЕКТЕП </h1>
+    
+    <!-- Поисковая строка -->
+    <input type="text" id="search" placeholder="Излеў...">
+
+    <!-- Контейнер для контента -->
+    <div id="content"></div>
+
+    <!-- Индикатор загрузки -->
+    <div id="loading">Загрузка...</div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // Инициализация Telegram Web App
+        window.Telegram.WebApp.ready();
+
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // раскрывает окно на весь экран (по желанию)
+        const user = tg.initDataUnsafe.user;
+        if (user && user.id) {
+            fetch(`app/check_vote.php?user_id=${user.id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.voted) {
+                        window.location.href = "stat.php?user_id=" + user.id;
+                    }
+                });
+        }
+
+        // Добавляем обработку кнопки "Назад"
+        tg.BackButton.show();
+        tg.BackButton.onClick(() => tg.close());
+
+
+        // Функция для подгрузки данных
+        let offset = 0;
+        let limit = 30;
+
+        function loadData() {
+            // Здесь можно подгружать данные, используя AJAX или другие методы
+            $.ajax({
+                url: 'app/load.php', // Поменяй на свой URL API
+                method: 'GET',
+                data: { offset: offset, limit: limit, q: $('#search').val() },
+                success: function(data) {
+                    data = JSON.parse(data);
+                    if (data && data.length) {
+                        data.forEach(item => {
+                            let viewCount = item.view_count !== null ? item.view_count : 0;
+                            $('#content').append(`
+                                    <a href="school.php?cat=${item.id}" class="item">
+                                        <div class="item-name">${item.name}</div>
+                                    </a>
+                            `);
+                        });
+                        offset += limit;
+                    } else {
+                        $('#loading').html("Нет данных для отображения.");
+                    }
+                },
+                error: function() {
+                    $('#loading').html("Ошибка при загрузке данных.");
+                }
+            });
+        }
+
+        // Подгружаем начальные данные
+        loadData();
+
+        // Обработка поиска
+        $('#search').on('input', function() {
+            offset = 0;
+            $('#content').html('');
+            loadData();
+        });
+    </script>
+</body>
+</html>
